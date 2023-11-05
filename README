@@ -1,0 +1,9 @@
+CHIFFREMENT
+Q1) le nom de cet algorithme est l'algorithme de chiffrement XOR. Oui il est robuste  car il permet de creer des messages indéchiffrables pour quiconque
+
+GENERATION DES SECRETS
+Q2)  Si on hache le sel et la clé avec un hmac,  ca ne fournira pas les memes niveaux de sécurité que les méthodes de dérivation de clé itératives telles que PBKDF2HMAC.
+
+SETUP
+Q3) 
+
