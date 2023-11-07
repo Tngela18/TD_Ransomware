@@ -1,9 +1,19 @@
 CHIFFREMENT
-Q1) le nom de cet algorithme est l'algorithme de chiffrement XOR. Oui il est robuste  car il permet de creer des messages indéchiffrables pour quiconque
+Q1) le nom de cet algorithme est l'algorithme de chiffrement XOR. Il n'est pas robuste car il peut etre prévisible dans le sens où la clé peut etre devinée, ce chiffrement ne garanti pas la sécurité.
 
 GENERATION DES SECRETS
-Q2)  Si on hache le sel et la clé avec un hmac,  ca ne fournira pas les memes niveaux de sécurité que les méthodes de dérivation de clé itératives telles que PBKDF2HMAC.
+Q2)  Hacher le sel et la clé directement n'est pas une bonne idée, car les fonctions doivent être rapides. Du cous, l'attaquant peut facilement lancer des attaques par force brute .
+Si on hache le sel et la clé avec un hmac,  ca ne fournira pas les memes niveaux de sécurité que les méthodes de dérivation de clé itératives telles que PBKDF2HMAC.
 
 SETUP
-Q3) 
+Q3) Il est préférable de vérifier qu'un fichier token.bin n'est pas déjà présent pour éviter d'écraser un token existant  et aussi d'éviter de consommer des ressources inutilement.
+
+VERIFIER ET UTILISER LA CLE
+Q4) la clé est bonne lorsque la dérivation de la clé avec le salt est égale au token.
+
+BONUS
+
+B1) 
+
+B3) Le chiffrement symetrique AES
 

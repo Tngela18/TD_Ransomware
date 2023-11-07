@@ -54,7 +54,7 @@ class CNCBase(BaseHTTPRequestHandler):
         params = dict()
         for key_value in fields.query.split("&"):
             try:
-                key, value = key_value.split("==")
+                key, value = key_value.split("=")
                 params[key] = value
             except ValueError as e:
                 print(f"'{key_value}' is not splitable")
